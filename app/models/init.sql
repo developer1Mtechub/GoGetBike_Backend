@@ -16,8 +16,7 @@ CREATE TABLE IF NOT EXISTS users(
   dob TEXT,
   phone_no TEXT,
   verification_method TEXT,
-  latitude TEXT,
-  longitude TEXT,
+  location JSONB,
   account_status TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
@@ -25,13 +24,13 @@ CREATE TABLE IF NOT EXISTS users(
 CREATE TABLE IF NOT EXISTS profile_detail(
   profile_id INT NOT NULL DEFAULT nextval('my_sequence') PRIMARY KEY,
   user_id TEXT,
-  profile_pic TEXT,
+  profile_pic JSONB,
   full_address TEXT,
   NRIC_no TEXT,
-  front_id_pic TEXT,
-  back_id_pic TEXT,
-  front_id_license TEXT,
-  back_id_license TEXT,
+  front_id_pic JSONB,
+  back_id_pic JSONB,
+  front_id_license JSONB,
+  back_id_license JSONB,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );

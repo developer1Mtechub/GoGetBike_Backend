@@ -48,7 +48,7 @@ const { cloudinary } = require("../app/urls");
 const uploadToCloudinary = async (path, folder) => {
   try {
     const uploadResult = await cloudinary.uploader.upload(path, {
-      folder: "Chatatue/${folder}",
+      folder: folder,
       allowed_formats: [],
       resource_type: "auto",
     });

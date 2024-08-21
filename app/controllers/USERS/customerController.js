@@ -9,13 +9,13 @@ exports.verifyPhone = async (req, res) => {
   try {
     const { phone } = req.body;
     const otp = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit OTP
-    const client1 = new twilio(accountSid, authToken);
-    // TWILIO SERVICE SEND MESSAGE TO PHONE
-    await client1.messages.create({
-      body: `Your verification code is ${otp}`,
-      from: twilio_test_phone,
-      to: phone,
-    });
+    // const client1 = new twilio(accountSid, authToken);
+    // // TWILIO SERVICE SEND MESSAGE TO PHONE
+    // await client1.messages.create({
+    //   body: `Your verification code is ${otp}`,
+    //   from: twilio_test_phone,
+    //   to: phone,
+    // });
 
     // Delete existing record for the phone number (if any)
     const deleteQuery =
@@ -28,22 +28,18 @@ exports.verifyPhone = async (req, res) => {
         VALUES ($1, $2, NOW(), NOW());
     `;
     await client.query(insertQuery, [phone, otp]);
-    res
-      .status(200)
-      .json({
-        error: false,
-        otp:otp,
-        message: "Message sent and record added/updated successfully",
-      });
+    res.status(200).json({
+      error: false,
+      otp: otp,
+      message: "Message sent and record added/updated successfully",
+    });
   } catch (error) {
     console.error("Error:", error);
-    res
-      .status(500)
-      .json({
-        error: true,
-        message: "Failed to send message or add/update record",
-        error_obj: error,
-      });
+    res.status(500).json({
+      error: true,
+      message: "Failed to send message or add/update record",
+      error_obj: error,
+    });
   } finally {
     client.release();
   }
@@ -70,46 +66,44 @@ exports.verifyCode = async (req, res) => {
 
     if (userRows.length === 0) {
       // If user doesn't exist, create a new user with empty fields
-      const createUserQuery = "INSERT INTO users (phone_no) VALUES ($1) RETURNING *";
-      const { rows: newUserRows } = await client.query(createUserQuery, [phone]);
+      const createUserQuery =
+        "INSERT INTO users (phone_no) VALUES ($1) RETURNING *";
+      const { rows: newUserRows } = await client.query(createUserQuery, [
+        phone,
+      ]);
 
       // Since it's a new user, they won't have a profile yet
-      return res
-        .status(200)
-        .json({
-          error: false,
-          message: "Verification successful",
-          user: newUserRows[0],
-          profile: null, // No profile exists for the new user
-        });
+      return res.status(200).json({
+        error: false,
+        message: "Verification successful",
+        user: newUserRows[0],
+        profile: null, // No profile exists for the new user
+      });
     } else {
       // If user exists, fetch their profile details
       const getProfileQuery = "SELECT * FROM profile_detail WHERE user_id = $1";
-      const { rows: profileRows } = await client.query(getProfileQuery, [userRows[0].user_id]);
+      const { rows: profileRows } = await client.query(getProfileQuery, [
+        userRows[0].user_id,
+      ]);
 
-      res
-        .status(200)
-        .json({
-          error: false,
-          message: "Verification successful",
-          user: userRows[0],
-          profile: profileRows.length > 0 ? profileRows[0] : null, // Return null if no profile found
-        });
+      res.status(200).json({
+        error: false,
+        message: "Verification successful",
+        user: userRows[0],
+        profile: profileRows.length > 0 ? profileRows[0] : null, // Return null if no profile found
+      });
     }
   } catch (error) {
     console.error("Error:", error);
-    res
-      .status(500)
-      .json({
-        error: true,
-        message: "Failed to verify code",
-        error_obj: error,
-      });
+    res.status(500).json({
+      error: true,
+      message: "Failed to verify code",
+      error_obj: error,
+    });
   } finally {
     client.release();
   }
 };
-
 
 // OnBOARDING SCREENS
 exports.addAboutUs = async (req, res) => {
@@ -127,12 +121,10 @@ exports.addAboutUs = async (req, res) => {
     if (count === 0) {
       order_id = 1; // Set order_id to 1 if no records exist
     } else if (count >= 3) {
-      return res
-        .status(400)
-        .json({
-          error: true,
-          message: "Only 3 records are allowed in the table",
-        });
+      return res.status(400).json({
+        error: true,
+        message: "Only 3 records are allowed in the table",
+      });
     } else {
       // Get the maximum order_id and increment it by 1
       const maxOrderIdQuery = "SELECT MAX(order_id) FROM about_screen";
@@ -187,18 +179,16 @@ exports.updateAboutUs = async (req, res) => {
       .json({ error: false, message: "Record updated successfully" });
   } catch (error) {
     console.error("Error:", error);
-    res
-      .status(500)
-      .json({
-        error: true,
-        message: "Failed to update record",
-        error_obj: error,
-      });
+    res.status(500).json({
+      error: true,
+      message: "Failed to update record",
+      error_obj: error,
+    });
   } finally {
     client.release();
   }
 };
-// get about_screen from about_screen table sort by asc order id 
+// get about_screen from about_screen table sort by asc order id
 exports.getAboutUs = async (req, res) => {
   const client = await pool.connect();
 
@@ -206,24 +196,18 @@ exports.getAboutUs = async (req, res) => {
     const query = "SELECT * FROM about_screen ORDER BY order_id ASC";
     const { rows } = await client.query(query);
 
-    res
-      .status(200)
-      .json({ error: false, about_us: rows });
+    res.status(200).json({ error: false, about_us: rows });
   } catch (error) {
     console.error("Error:", error);
-    res
-      .status(500)
-      .json({
-        error: true,
-        message: "Failed to fetch about us details",
-        error_obj: error,
-      });
+    res.status(500).json({
+      error: true,
+      message: "Failed to fetch about us details",
+      error_obj: error,
+    });
   } finally {
     client.release();
   }
 };
-
-
 
 exports.updateUser = async (req, res) => {
   const client = await pool.connect();
@@ -236,8 +220,7 @@ exports.updateUser = async (req, res) => {
       full_address,
       dob, // format: DD-MM-YYYY
       verification_method,
-      latitude,
-      longitude,
+      location,
       profile_pic,
       nric_no,
       front_id_pic,
@@ -262,8 +245,7 @@ exports.updateUser = async (req, res) => {
       !full_address ||
       !dob ||
       !verification_method ||
-      !latitude ||
-      !longitude ||
+      !location ||
       !profile_pic ||
       !nric_no ||
       !front_id_pic ||
@@ -275,7 +257,7 @@ exports.updateUser = async (req, res) => {
         .status(400)
         .json({ error: true, message: "All fields are required" });
     }
-  // Validate NRIC number format
+    // Validate NRIC number format
     const nricRegex = /^[STFGM]\d{7}[A-Z]$/;
     if (!nricRegex.test(nric_no)) {
       return res
@@ -300,16 +282,15 @@ exports.updateUser = async (req, res) => {
     // Update user details
     const updateUserQuery = `
         UPDATE users
-        SET email = $1, full_name = $2, dob = $3, verification_method = $4, latitude = $5, longitude = $6, account_status = false
-        WHERE phone_no = $7;
+        SET email = $1, full_name = $2, dob = $3, verification_method = $4, location = $5, account_status = false
+        WHERE phone_no = $6;
     `;
     await client.query(updateUserQuery, [
       email,
       full_name,
       dob,
       verification_method,
-      latitude,
-      longitude,
+      location,
       phone,
     ]);
 
@@ -355,25 +336,41 @@ exports.updateUser = async (req, res) => {
       ]);
     }
 
-    res
-      .status(200)
-      .json({ error: false, message: "User updated successfully" ,user:userRows[0]});
+    res.status(200).json({
+      error: false,
+      message: "User updated successfully",
+      user:{
+        phone,
+        email,
+        full_name,
+        dob,
+        verification_method,
+        location,
+      },
+      profile: {
+        profile_pic,
+        full_address,
+        NRIC_no: nric_no,
+        front_id_pic,
+        back_id_pic,
+        front_id_license,
+        back_id_license,
+      },
+    });
   } catch (error) {
     console.error("Error:", error);
-    res
-      .status(500)
-      .json({
-        error: true,
-        message: "Failed to update user",
-        error_obj: error,
-      });
+    res.status(500).json({
+      error: true,
+      message: "Failed to update user",
+      error_obj: error,
+    });
   } finally {
     client.release();
   }
 };
 
 // The Singapore National Registration Identity Card (NRIC) number follows a specific format. According to Wikipedia, the NRIC number comprises 9 alphanumeric characters, with the first letter indicating the holder's status (S for Singapore citizens, T for permanent residents, F/G/M for foreigners). The remaining 7 digits are unique identifiers, and the final character is a checksum.
-// get user by user id and all its profile from profile_detail table 
+// get user by user id and all its profile from profile_detail table
 
 exports.getUserProfile = async (req, res) => {
   const client = await pool.connect();
@@ -395,23 +392,19 @@ exports.getUserProfile = async (req, res) => {
     const profileQuery = "SELECT * FROM profile_detail WHERE user_id = $1";
     const { rows: profileRows } = await client.query(profileQuery, [user_id]);
 
-    res
-      .status(200)
-      .json({
-        error: false,
-        user: userRows[0],
-        profile: profileRows.length > 0 ? profileRows[0] : null,
-      });
+    res.status(200).json({
+      error: false,
+      user: userRows[0],
+      profile: profileRows.length > 0 ? profileRows[0] : null,
+    });
   } catch (error) {
     console.error("Error:", error);
-    res
-      .status(500)
-      .json({
-        error: true,
-        message: "Failed to fetch user profile",
-        error_obj: error,
-      });
+    res.status(500).json({
+      error: true,
+      message: "Failed to fetch user profile",
+      error_obj: error,
+    });
   } finally {
     client.release();
   }
-}
+};

@@ -14,6 +14,7 @@ const bodyParser = require("body-parser");
 require("dotenv").config();
 const cors = require("cors");
 const { accountSid, authToken } = require("./app/urls");
+const { deleteCloudinaryFile } = require("./app/upload-image");
 
 app.use(
   cors({
@@ -36,6 +37,21 @@ app.use("/uploads", express.static("uploads"));
 // app.use("/upload-image", require("./app/upload-image"));
 
 app.use("/user", require("./app/routes/Users/customerRoute"));
+// cloudinary delete image 
+app.delete('/delete/:publicId', async (req, res) => {
+  const { publicId } = req.params;
+
+  try {
+    const result = await deleteCloudinaryFile(publicId);
+    if (result.result !== 'ok') {
+      return res.status(400).json({ error: true, message: 'Failed to delete image' ,error_obj:result});
+    }
+    res.json({ error: false, message: 'Image deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    res.status(500).json({ error: true, message: 'An error occurred while deleting the image', error_obj: error });
+  }
+});
 app.post("/test-twilio", (req, res) => {
   // Create a Twilio client
   const client = new twilio(accountSid, authToken);
