@@ -198,6 +198,30 @@ exports.updateAboutUs = async (req, res) => {
     client.release();
   }
 };
+// get about_screen from about_screen table sort by asc order id 
+exports.getAboutUs = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const query = "SELECT * FROM about_screen ORDER BY order_id ASC";
+    const { rows } = await client.query(query);
+
+    res
+      .status(200)
+      .json({ error: false, about_us: rows });
+  } catch (error) {
+    console.error("Error:", error);
+    res
+      .status(500)
+      .json({
+        error: true,
+        message: "Failed to fetch about us details",
+        error_obj: error,
+      });
+  } finally {
+    client.release();
+  }
+};
 
 
 
