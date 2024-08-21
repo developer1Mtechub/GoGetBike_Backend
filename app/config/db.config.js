@@ -5,28 +5,14 @@ const fs = require('fs');
 const pool = new Pool ({
   host: 'postgres-staging-projects.mtechub.com', 
   port :5432,
-  user : 'cueclub_user' ,
+  user : 'hrm_user' ,
   password : 'mtechub123',
-  database : 'cueclub_db',
+  database : 'go_get_bike',
   max : 10
 });
 
 
- async function getBallImages() {
-  try {
-    const result = await pool.query('SELECT * FROM balls_images'); // replace with your actual SQL query
-    const rows = result.rows;
 
-    const ballImageUrls = {};
-    for (let row of rows) {
-      ballImageUrls[row.name] = row.image_url; // replace 'number' and 'url' with your actual column names
-    }
-    // console.log(ballImageUrls)
-    return ballImageUrls;
-  } catch (error) {
-    console.error(error);
-  }
-}
 pool.on('error', (err) => {
     console.error('Unexpected error on idle client', err);
     process.exit(-1);
@@ -56,7 +42,7 @@ pool.on('error', (err) => {
     }
   })
   
-  module.exports = { pool, getBallImages };
+  module.exports = {pool}
 
   
 
