@@ -12,4 +12,6 @@ router.post("/verify-code", customerController.verifyCode);
 // User Profile
 router.post("/update-user", customerController.updateUser);
 router.post("/get-user-profile", customerController.getUserProfile);
+// Deposit security fee 
+router.post("/deposit-security-fee", customerController.depositUserSecurityFee);
 module.exports = router;

@@ -37,6 +37,8 @@ app.use("/uploads", express.static("uploads"));
 // app.use("/upload-image", require("./app/upload-image"));
 
 app.use("/user", require("./app/routes/Users/customerRoute"));
+app.use("/admin", require("./app/routes/Admin/adminRoute"));
+app.use("/deposit-security-fee", require("./app/routes/SecurityDepositAmount/securityDepositAmountRoute"));
 // cloudinary delete image 
 app.delete('/delete/:publicId', async (req, res) => {
   const { publicId } = req.params;

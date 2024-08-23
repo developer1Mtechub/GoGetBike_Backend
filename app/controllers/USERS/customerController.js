@@ -1,38 +1,86 @@
-const { user } = require("pg/lib/defaults");
 const { pool } = require("../../config/db.config");
 const { twilio_test_phone, accountSid, authToken } = require("../../urls");
 const twilio = require("twilio");
 
 exports.verifyPhone = async (req, res) => {
   const client = await pool.connect();
+  const client1 = new twilio(accountSid, authToken);
 
   try {
-    const { phone } = req.body;
+    const { phone, type } = req.body;
     const otp = Math.floor(1000 + Math.random() * 9000); // Generate 4-digit OTP
-    // const client1 = new twilio(accountSid, authToken);
-    // // TWILIO SERVICE SEND MESSAGE TO PHONE
-    // await client1.messages.create({
-    //   body: `Your verification code is ${otp}`,
-    //   from: twilio_test_phone,
-    //   to: phone,
-    // });
 
-    // Delete existing record for the phone number (if any)
-    const deleteQuery =
-      "DELETE FROM phone_verification_codes WHERE phone_no = $1";
-    await client.query(deleteQuery, [phone]);
+    if (!type) {
+      return res
+        .status(400)
+        .json({ error: true, message: "Please provide type" });
+    }
 
-    // Add record in phone_verification_codes table
-    const insertQuery = `
-        INSERT INTO phone_verification_codes (phone_no, code, created_at, updated_at)
-        VALUES ($1, $2, NOW(), NOW());
-    `;
-    await client.query(insertQuery, [phone, otp]);
-    res.status(200).json({
-      error: false,
-      otp: otp,
-      message: "Message sent and record added/updated successfully",
-    });
+    if (type === "signup") {
+      // Check if user already exists with the given phone number
+      const userQuery = "SELECT * FROM users WHERE phone_no = $1";
+      const { rows: userRows } = await client.query(userQuery, [phone]);
+
+      if (userRows.length > 0) {
+        return res
+          .status(400)
+          .json({ error: true, message: "User already exists" });
+      }
+
+      // Delete existing record for the phone number (if any)
+      const deleteQuery =
+        "DELETE FROM phone_verification_codes WHERE phone_no = $1";
+      await client.query(deleteQuery, [phone]);
+      // TWILIO SERVICE SEND MESSAGE TO PHONE
+      // await client1.messages.create({
+      //   body: `Your verification code is ${otp}`,
+      //   from: twilio_test_phone,
+      //   to: phone,
+      // });
+      // Add record in phone_verification_codes table
+      const insertQuery = `
+          INSERT INTO phone_verification_codes (phone_no, code, created_at, updated_at)
+          VALUES ($1, $2, NOW(), NOW());
+      `;
+      await client.query(insertQuery, [phone, otp]);
+
+      res.status(200).json({
+        error: false,
+        otp: otp,
+        message: "Message sent successfully",
+      });
+    } else if (type === "login") {
+      // Check if user exists with the given phone number
+      const userQuery = "SELECT * FROM users WHERE phone_no = $1";
+      const { rows: userRows } = await client.query(userQuery, [phone]);
+
+      if (userRows.length === 0) {
+        return res
+          .status(400)
+          .json({ error: true, message: "User does not exist" });
+      }
+
+      // Perform login logic here
+      // Delete existing record for the phone number (if any)
+      const deleteQuery =
+        "DELETE FROM phone_verification_codes WHERE phone_no = $1";
+      await client.query(deleteQuery, [phone]);
+
+      // Add record in phone_verification_codes table
+      const insertQuery = `
+    INSERT INTO phone_verification_codes (phone_no, code, created_at, updated_at)
+    VALUES ($1, $2, NOW(), NOW());
+`;
+      await client.query(insertQuery, [phone, otp]);
+      res.status(200).json({
+        error: false,
+        otp: otp,
+        message: "Message sent successfully",
+        user: userRows[0],
+      });
+    } else {
+      return res.status(400).json({ error: true, message: "Invalid type" });
+    }
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({
@@ -71,18 +119,33 @@ exports.verifyCode = async (req, res) => {
       const { rows: newUserRows } = await client.query(createUserQuery, [
         phone,
       ]);
-
+      // insert into prof
       // Since it's a new user, they won't have a profile yet
+      // Create wallet for the new user with balance 0
+      const createWalletQuery = `
+        INSERT INTO wallet (user_id, wallet_balance) VALUES ($1, 0) RETURNING *;
+      `;
+      const { rows: newWalletRows } = await client.query(createWalletQuery, [
+        newUserRows[0].user_id,
+      ]);
+      console.log(newWalletRows);
+
       return res.status(200).json({
         error: false,
         message: "Verification successful",
         user: newUserRows[0],
         profile: null, // No profile exists for the new user
+        wallet: newWalletRows[0], // Wallet created for the new user
       });
     } else {
       // If user exists, fetch their profile details
       const getProfileQuery = "SELECT * FROM profile_detail WHERE user_id = $1";
       const { rows: profileRows } = await client.query(getProfileQuery, [
+        userRows[0].user_id,
+      ]);
+      // also get walalet
+      const getWalletQuery = "SELECT * FROM wallet WHERE user_id = $1";
+      const { rows: walletRows } = await client.query(getWalletQuery, [
         userRows[0].user_id,
       ]);
 
@@ -91,6 +154,7 @@ exports.verifyCode = async (req, res) => {
         message: "Verification successful",
         user: userRows[0],
         profile: profileRows.length > 0 ? profileRows[0] : null, // Return null if no profile found
+        wallet: walletRows.length > 0 ? walletRows[0] : null, // No wallet for existing user
       });
     }
   } catch (error) {
@@ -208,7 +272,7 @@ exports.getAboutUs = async (req, res) => {
     client.release();
   }
 };
-
+// CREATE UPDATE USER PROFILE
 exports.updateUser = async (req, res) => {
   const client = await pool.connect();
 
@@ -339,7 +403,7 @@ exports.updateUser = async (req, res) => {
     res.status(200).json({
       error: false,
       message: "User updated successfully",
-      user:{
+      user: {
         phone,
         email,
         full_name,
@@ -371,7 +435,7 @@ exports.updateUser = async (req, res) => {
 
 // The Singapore National Registration Identity Card (NRIC) number follows a specific format. According to Wikipedia, the NRIC number comprises 9 alphanumeric characters, with the first letter indicating the holder's status (S for Singapore citizens, T for permanent residents, F/G/M for foreigners). The remaining 7 digits are unique identifiers, and the final character is a checksum.
 // get user by user id and all its profile from profile_detail table
-
+// GET PROFILE
 exports.getUserProfile = async (req, res) => {
   const client = await pool.connect();
 
@@ -402,6 +466,87 @@ exports.getUserProfile = async (req, res) => {
     res.status(500).json({
       error: true,
       message: "Failed to fetch user profile",
+      error_obj: error,
+    });
+  } finally {
+    client.release();
+  }
+};
+// DEPOSIT SECURITY FEE
+exports.depositUserSecurityFee = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const user_id = req.body.user_id;
+
+    const query = "SELECT * FROM deposit_fee WHERE deposit_id = 1";
+    const { rows } = await client.query(query);
+    console.log("rows");
+
+    console.log(rows);
+    if(rows.length === 0){
+      return res.status(400).json({
+        error: true,
+        message: "No security deposit amount found",
+      });
+    }
+let deposit_amount=rows[0].amount;
+    // also get user wallet balance
+    const walletQuery = "SELECT * FROM wallet WHERE user_id = $1";
+    const { rows: walletRows } = await client.query(walletQuery, [user_id]);
+    console.log("walletRows");
+
+    console.log(walletRows);
+    if(walletRows.length === 0){
+      return res.status(400).json({
+        error: true,
+        message: "No user wallet found",
+      });
+    }
+    let wallet_balance=walletRows[0].wallet_balance;
+    // make check if deposit_amount is greater than wallet balance then return error
+    if(deposit_amount > wallet_balance){
+      return res.status(400).json({
+        error: true,
+        message: "Insufficient wallet balance",
+      });
+    }
+
+    res.status(200).json({ error: false, data: rows[0] });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: true,
+      message: "Failed to get record",
+      error_obj: error,
+    });
+  } finally {
+    client.release();
+  }
+};
+// get user wallet 
+exports.getUserWallet = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const user_id = req.body.user_id;
+
+    const query = "SELECT * FROM wallet WHERE user_id = $1";
+    const { rows } = await client.query(query, [user_id]);
+
+    if (rows.length === 0) {
+      return res.status(400).json({
+        error: true,
+        message: "No wallet found",
+      });
+    }
+
+    res.status(200).json({ error: false, data: rows[0] });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: true,
+      message: "Failed to get record",
       error_obj: error,
     });
   } finally {
