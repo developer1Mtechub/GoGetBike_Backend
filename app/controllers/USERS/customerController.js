@@ -472,6 +472,50 @@ exports.getUserProfile = async (req, res) => {
     client.release();
   }
 };
+// update verify_status of users table with user id 
+exports.updateUserVerifyStatus = async (req, res) => {
+  const client = await pool.connect();
+
+  try {
+    const { user_id, verify_status } = req.body;
+
+    // Check if user exists with the given user_id
+    const userQuery = "SELECT * FROM users WHERE user_id = $1";
+    const { rows: userRows } = await client.query(userQuery, [user_id]);
+// check verify_status given or not 
+    if (userRows.length === 0) {
+      return res
+        .status(400)
+        .json({ error: true, message: "User does not exist" });
+    }
+  if (!verify_status) {
+      return res
+        .status(400)
+        .json({ error: true, message: "Please provide verify status" });
+    }
+    // Update verify_status in users table
+    const updateQuery = `
+        UPDATE users
+        SET verify_status = $1
+        WHERE user_id = $2;
+    `;
+    await client.query(updateQuery, [verify_status, user_id]);
+
+    res.status(200).json({
+      error: false,
+      message: "User verify status updated successfully",
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: true,
+      message: "Failed to update user verify status",
+      error_obj: error,
+    });
+  } finally {
+    client.release();
+  }
+};
 // DEPOSIT SECURITY FEE
 exports.depositUserSecurityFee = async (req, res) => {
   const client = await pool.connect();
@@ -484,28 +528,28 @@ exports.depositUserSecurityFee = async (req, res) => {
     console.log("rows");
 
     console.log(rows);
-    if(rows.length === 0){
+    if (rows.length === 0) {
       return res.status(400).json({
         error: true,
         message: "No security deposit amount found",
       });
     }
-let deposit_amount=rows[0].amount;
+    let deposit_amount = rows[0].amount;
     // also get user wallet balance
     const walletQuery = "SELECT * FROM wallet WHERE user_id = $1";
     const { rows: walletRows } = await client.query(walletQuery, [user_id]);
     console.log("walletRows");
 
     console.log(walletRows);
-    if(walletRows.length === 0){
+    if (walletRows.length === 0) {
       return res.status(400).json({
         error: true,
         message: "No user wallet found",
       });
     }
-    let wallet_balance=walletRows[0].wallet_balance;
+    let wallet_balance = walletRows[0].wallet_balance;
     // make check if deposit_amount is greater than wallet balance then return error
-    if(deposit_amount > wallet_balance){
+    if (deposit_amount > wallet_balance) {
       return res.status(400).json({
         error: true,
         message: "Insufficient wallet balance",
@@ -524,7 +568,7 @@ let deposit_amount=rows[0].amount;
     client.release();
   }
 };
-// get user wallet 
+// get user wallet
 exports.getUserWallet = async (req, res) => {
   const client = await pool.connect();
 

@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users(
   deposit_fee_submitted BOOLEAN DEFAULT FALSE, -- Added DEFAULT FALSE
   verification_method TEXT,
   location JSONB,
-  account_status BOOLEAN DEFAULT FALSE, -- Added DEFAULT FALSE
+  verify_status BOOLEAN DEFAULT FALSE, -- Added DEFAULT FALSE
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
